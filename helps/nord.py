@@ -1,4 +1,5 @@
 import sys
+import os
 
 h = False
 if len(sys.argv) > 1:
@@ -11,9 +12,26 @@ if len(sys.argv) > 1:
 else:
     from urllib import request as req, error
     from Parsers import *
+    from ExcelHandler import Excel
     import re
     import time
 
+    BOOK = Excel(os.path.dirname(__file__) + '\\cfg_name\\.data.xlsx')
+#queryqueue
+#toexcel
+
+class QueryQueue:
+    
+    def __init__(self, item, p):
+        self.workers = []
+        self.phrases = [cfgparser.getTranslation(i, item) for i in p]
+        for i in self.phrases:
+            i += list(map(lambda p: '"%s"' % p, i))
+    
+    def workerController(self):
+        for i in self.phrases:
+            self.worker = Selector(i)
+            self.workers.append(self.worker)
 
 def fetchURL(url='', q=None):
     page = None
@@ -35,18 +53,18 @@ def fetchURL(url='', q=None):
         return page.decode(p_encoding, errors='ignore')
 
 def toWordstat(qry, phrases):
-    if CONFIGS['default_show'] == 'excel':
+    '''if CONFIGS['default_show'] == 'excel':
         BOOK()
         BOOK.addSheet(qry)
         BOOK.changeColumnSize(2, 72)
         BOOK.changeColumnSize(3, 25)
         BOOK.changeColumnSize(5, 55)
     res = []
-    workers = []
-    phrs = [qry+' '+''.join(re.findall(r'[\w+ ]', i.split('|')[0].strip())) for i in phrases]
+    workers = []'''
+    query = QueryQueue(qry, [''.join(re.findall(r'[\w+ ]', i.split(' |')[0].strip())) for i in phrases])
         
-    if CONFIGS['default_show'] == 'excel':
-        BOOK.quit()
+    #if CONFIGS['default_show'] == 'excel':
+    #    BOOK.quit()
 
 def helper():
     print('Добро пожаловать в режим прямого взаимодействия с API.')
