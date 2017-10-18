@@ -1,5 +1,6 @@
 import sys
 import os
+import traceback
 
 h = False
 if len(sys.argv) > 1:
@@ -16,31 +17,87 @@ else:
     import re
     import time
 
-    BOOK = Excel(os.path.dirname(__file__) + '\\cfg_name\\.data.xlsx')
-#queryqueue
-#toexcel
+    
 
 class QueryQueue:
     
     def __init__(self, item, p):
         self.workers = []
         self.phrases = [cfgparser.getTranslation(i, item) for i in p]
+        self.appender()
+        
+    def appender(self):
         for i,v in enumerate(self.phrases):
-            self.worker = Selector(v + list(map(lambda p: '"%s"' % p, v)), tname=str(i))
-            self.workers.append(self.worker)
-        self.workerController()
+            quotes_extended = v + list(map(lambda p: '"%s"' % p, v))
+            self.workers.append(Selector(quotes_extended[:10], tname=str(i)))
+            if len(quotes_extended) > 10:
+                self.workers.append(Selector(quotes_extended[10:], tname='e%s' % i))
     
-    def workerController(self):
+    def q_start(self):
         for worker in self.workers:
             if not worker.api_answer and worker not in Selector.ACTIVE_SELECTORS:
                 worker.start()
             if len(Selector.ACTIVE_SELECTORS) == 5:
-                for active in Selector.ACTIVE_SELECTORS:
-                    active.join()
+                self.pause()
+        self.pause()
+                    
+    def pause(self):
+        for active in Selector.ACTIVE_SELECTORS:
+            active.join()
     
     def getResult(self):
+        answers = []
         for worker in self.workers:
-            yield worker.result
+            wname = worker.getName()
+            if wname.startswith('e'):
+                answers[int(wname[1:])] += worker.result
+            answers.append(worker.result)
+        return filter(lambda res: len(res) > 0, answers)
+
+def toWordstat(qry, phrases):
+    query = QueryQueue(qry, [''.join(re.findall(r'[\w+ ]', i.split(' |')[0].strip())) for i in phrases])
+    query.q_start()
+    if CONFIGS['default_show'] == 'excel':
+        toExcel(query.getResult(), phrases, qry)
+    elif CONFIGS['default_show'] == 'console':
+        printReport(query.getResult())
+
+def toExcel(data, faucetlist, listname):
+    BOOK = Excel(os.path.dirname(__file__) + '\\cfg_data\\data.xlsx')
+    try:
+        BOOK()
+        BOOK.addSheet(listname)
+        BOOK.changeColumnSize(2, 72)
+        BOOK.changeColumnSize(3, 25)
+        BOOK.changeColumnSize(5, 55)
+        row = BOOK.findFreeRow()
+        print('ROW:', row)
+        for phr in data:
+            try:
+                BOOK.setVal(row, 1, 1 if row-1 == 0 else int(BOOK.getVal(row-1, 1)) + 1)
+                BOOK.setVal(row, 3, phr['Phrase'])
+                for i in faucetlist:
+                    print('*****', i, phr['Phrase'], end=': ')
+                    sep = i.find('|')
+                    if i[:sep-1].strip().lower() in phr['Phrase'].lower():
+                        BOOK.setVal(row, 2, i[sep+1:])
+                        print('YEYS:', i[sep+1:])
+                        faucetlist.remove(i)
+                        break
+                    print('NOYS')
+                BOOK.setVal(row, 5, '\n'.join('{} :: {}'.format(i['Phrase'], i['Shows']) for i in phr[1:]))
+                row += 1
+            except Exception:
+                traceback.print_exc()
+    finally:
+        BOOK.quit()        
+
+def printReport(rep_list):
+    for rep in rep_list:
+        print('***********************')
+        for phr in rep:
+            print(phr['Phrase'], '::', phr['Shows'])
+        print('***********************\n')
 
 def fetchURL(url='', q=None):
     page = None
@@ -60,20 +117,6 @@ def fetchURL(url='', q=None):
         return page.decode(p_encoding)
     except UnicodeDecodeError:
         return page.decode(p_encoding, errors='ignore')
-
-def toWordstat(qry, phrases):
-    '''if CONFIGS['default_show'] == 'excel':
-        BOOK()
-        BOOK.addSheet(qry)
-        BOOK.changeColumnSize(2, 72)
-        BOOK.changeColumnSize(3, 25)
-        BOOK.changeColumnSize(5, 55)
-    res = []
-    workers = []'''
-    query = QueryQueue(qry, [''.join(re.findall(r'[\w+ ]', i.split(' |')[0].strip())) for i in phrases])
-        
-    #if CONFIGS['default_show'] == 'excel':
-    #    BOOK.quit()
 
 def helper():
     print('Добро пожаловать в режим прямого взаимодействия с API.')
@@ -110,7 +153,7 @@ def main():
         q = str(input('\nЗапрос: '))
         if q not in dkeys:
             for i in dkeys:
-                if i.startswith(q.lower()) or (len(q) > 2 and ~(i.find(q.lower()))):
+                if ~(i.find(q.lower())):
                     print('-->', i)
         else:
             parser.feed(fetchURL(url=dic[q]), mode=1)
