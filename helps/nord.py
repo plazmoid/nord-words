@@ -25,13 +25,22 @@ class QueryQueue:
     def __init__(self, item, p):
         self.workers = []
         self.phrases = [cfgparser.getTranslation(i, item) for i in p]
-        for i in self.phrases:
-            i += list(map(lambda p: '"%s"' % p, i))
+        for i,v in enumerate(self.phrases):
+            self.worker = Selector(v + list(map(lambda p: '"%s"' % p, v)), tname=str(i))
+            self.workers.append(self.worker)
+        self.workerController()
     
     def workerController(self):
-        for i in self.phrases:
-            self.worker = Selector(i)
-            self.workers.append(self.worker)
+        for worker in self.workers:
+            if not worker.api_answer and worker not in Selector.ACTIVE_SELECTORS:
+                worker.start()
+            if len(Selector.ACTIVE_SELECTORS) == 5:
+                for active in Selector.ACTIVE_SELECTORS:
+                    active.join()
+    
+    def getResult(self):
+        for worker in self.workers:
+            yield worker.result
 
 def fetchURL(url='', q=None):
     page = None
