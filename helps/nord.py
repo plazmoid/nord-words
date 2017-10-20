@@ -17,7 +17,6 @@ else:
     import re
     import time
 
-    
 
 class QueryQueue:
     
@@ -63,7 +62,7 @@ def toWordstat(qry, phrases):
         printReport(query.getResult())
 
 def toExcel(data, faucetlist, listname):
-    BOOK = Excel(os.path.dirname(__file__) + '\\cfg_data\\data.xlsx')
+    BOOK = Excel(os.path.abspath(os.path.dirname(sys.argv[0])) + '\\cfg_data\\data.xlsx')
     try:
         BOOK()
         BOOK.addSheet(listname)
@@ -73,22 +72,25 @@ def toExcel(data, faucetlist, listname):
         row = BOOK.findFreeRow()
         print('ROW:', row)
         for phr in data:
-            try:
-                BOOK.setVal(row, 1, 1 if row-1 == 0 else int(BOOK.getVal(row-1, 1)) + 1)
-                BOOK.setVal(row, 3, phr['Phrase'])
-                for i in faucetlist:
-                    print('*****', i, phr['Phrase'], end=': ')
-                    sep = i.find('|')
-                    if i[:sep-1].strip().lower() in phr['Phrase'].lower():
-                        BOOK.setVal(row, 2, i[sep+1:])
-                        print('YEYS:', i[sep+1:])
-                        faucetlist.remove(i)
-                        break
-                    print('NOYS')
-                BOOK.setVal(row, 5, '\n'.join('{} :: {}'.format(i['Phrase'], i['Shows']) for i in phr[1:]))
-                row += 1
-            except Exception:
-                traceback.print_exc()
+            print(phr)
+            BOOK.setVal(row, 1, 1 if row-1 == 0 else int(BOOK.getVal(row-1, 1)) + 1)
+            BOOK.setVal(row, 3, phr[0]['Phrase'])
+            for i in faucetlist:
+                print('*****', i, phr[0]['Phrase'], end=': ')
+                sep = i.find('|')
+                trademark = i[:sep-1].strip().lower()
+                tm_in_phrase = False
+                for qry_tm in range(len(phr)):
+                    tm_in_phrase = trademark in phr[qry_tm]['Phrase'].lower()
+                    if tm_in_phrase: break
+                if tm_in_phrase:
+                    BOOK.setVal(row, 2, i[sep+1:])
+                    print('YEYS:', i[sep+1:])
+                    faucetlist.remove(i)
+                    break
+                print('NOYS')
+            BOOK.setVal(row, 5, '\n'.join('{} :: {}'.format(i['Phrase'], i['Shows']) for i in phr))
+            row += 1
     finally:
         BOOK.quit()        
 
