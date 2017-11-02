@@ -1,6 +1,5 @@
 import sys
 import os
-import traceback
 
 h = False
 if len(sys.argv) > 1:
@@ -53,6 +52,7 @@ class QueryQueue:
             answers.append(worker.result)
         return filter(lambda res: len(res) > 0, answers)
 
+
 def toWordstat(qry, phrases):
     query = QueryQueue(qry, [''.join(re.findall(r'[\w+ ]', i.split(' |')[0].strip())) for i in phrases])
     query.q_start()
@@ -72,11 +72,11 @@ def toExcel(data, faucetlist, listname):
         row = BOOK.findFreeRow()
         print('ROW:', row)
         for phr in data:
-            print(phr)
+            #print(phr)
             BOOK.setVal(row, 1, 1 if row-1 == 0 else int(BOOK.getVal(row-1, 1)) + 1)
             BOOK.setVal(row, 3, phr[0]['Phrase'])
             for i in faucetlist:
-                print('*****', i, phr[0]['Phrase'], end=': ')
+                #print('*****', i, phr[0]['Phrase'], end=': ')
                 sep = i.find('|')
                 trademark = i[:sep-1].strip().lower()
                 tm_in_phrase = False
@@ -85,10 +85,9 @@ def toExcel(data, faucetlist, listname):
                     if tm_in_phrase: break
                 if tm_in_phrase:
                     BOOK.setVal(row, 2, i[sep+1:])
-                    print('YEYS:', i[sep+1:])
+                    #print('YEYS:', i[sep+1:])
                     faucetlist.remove(i)
                     break
-                print('NOYS')
             BOOK.setVal(row, 5, '\n'.join('{} :: {}'.format(i['Phrase'], i['Shows']) for i in phr))
             row += 1
     finally:

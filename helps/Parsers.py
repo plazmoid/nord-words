@@ -73,7 +73,7 @@ class ALittleHTMLParser(HTMLParser):
 #TODO: убрать фильтр с названий фирм с цифрами
 class Selector(Thread): #в одном потоке могут вертеться одновременно до 10 записей, максимум - 5 потоков (ограничение яндекса)
     
-    ALL_T = []
+    ACTIVE_SELECTORS = []
     
     def __init__(self, phrases, tname):
         Thread.__init__(self)
@@ -86,13 +86,13 @@ class Selector(Thread): #в одном потоке могут вертетьс�
         return (self.getName(), self.isAlive(), self.api_answer)
     
     def run(self):
-        Selector.ALL_T.append(self)
+        Selector.ACTIVE_SELECTORS.append(self)
         try:
             self.api_answer = W_API().simpleRequest(self.phrases)
-            if findPhraseShows(self.api_answer, '"%s"' % self.phrases[0]) == 0:
+            if self.findPhraseShows('"%s"' % self.phrases[0]) == 0:
                 return
             self.api_answer = list(filter(lambda unit: unit['Phrase'][0] == '"' or \
-                                       (unit['Phrase'][0] != '"' and findPhraseShows(self.api_answer, '"%s"' % unit['Phrase']) != 0), self.api_answer))
+                                       (unit['Phrase'][0] != '"' and self.findPhraseShows('"%s"' % unit['Phrase']) != 0), self.api_answer))
             self.api_answer = list(filter(lambda unit: unit['Phrase'][0] != '"', self.api_answer))
             for query in self.api_answer:
                 if CONFIGS['use_SearchedAlso'].lower() == 'true':
@@ -108,11 +108,10 @@ class Selector(Thread): #в одном потоке могут вертетьс�
         except Exception as e:
             print('Error in %s: %s' % (self.getName(), e))
         finally:
-            Selector.ALL_T.remove(self)
+            Selector.ACTIVE_SELECTORS.remove(self)
 
-
-def findPhraseShows(lst, qr):
-    for k in lst:
-        for i in k['SearchedWith']:
-            if qr in i['Phrase']:
-                return i['Shows']
+    def findPhraseShows(self, qr):
+        for k in self.api_answer:
+            for i in k['SearchedWith']:
+                if qr in i['Phrase']:
+                    return i['Shows']

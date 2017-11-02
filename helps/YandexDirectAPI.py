@@ -18,7 +18,7 @@ class W_API:
 
     def __err_handle(self):
         if self.answer['error_code'] == 52:
-            #print(self.data)
+            print('Error code 52')
             return self.__interact()
         else:
             print(self.answer)

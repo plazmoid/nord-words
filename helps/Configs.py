@@ -34,7 +34,7 @@ class CFGParser:
         except Exception as e:
             print('Ошибка при открытии файла', file, e)
 
-    def readGen(self, file):
+    def readGen(self, file): #зачем
         try:
             with open(self.PATH+file, 'r') as fi:
                 for fstr in fi:
@@ -49,14 +49,15 @@ class CFGParser:
     @sorting
     def getMinus(self, file):
         self.rd = self.readAll(file, splitby='\n')
-        return list(filter(lambda wlen: len(wlen) >=2, map(lambda phrase: phrase.replace('+', ' '), self.rd)))
+        return list(filter(lambda wlen: len(wlen) >=2, map(lambda phrase: phrase.replace('_', ' '), self.rd)))
 
     #@sorting
     def getTranslation(self, tm, item):
+        tm = tm.lower()
         if not self.trans:
             self.trans = self.readAll('cfg_data\\translations.txt', splitby='\n')
         for i in self.trans:
-            if tm in i:
+            if tm in i.lower():
                 res = list(map(lambda a: a.strip(), i.split('-')))
                 translated = ['%s %s' % (item, res[0])]
                 try:
