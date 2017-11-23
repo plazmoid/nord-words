@@ -144,7 +144,7 @@ def helper():
 def main():
     parser = ALittleHTMLParser()
     parser.feed(fetchURL())
-    dic = parser.getd()
+    dic = parser.result
     if len(dic) == 0:
         raise Exception('Ошибка при загрузке страницы')
     print('Данные успешно загружены!')
@@ -158,10 +158,10 @@ def main():
                     print('-->', i)
         else:
             parser.feed(fetchURL(url=dic[q]), mode=1)
-            for i in parser.getd():
+            for i in parser.result:
                 print('-->', i)
             if str(input('Продолжить (y\\n)? ')).lower() == 'y':
-                toWordstat(q, parser.getd())    
+                toWordstat(q, parser.result)
 
 if __name__ == '__main__':
     if h:

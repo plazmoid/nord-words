@@ -10,6 +10,7 @@ class W_API:
 
     def __interact(self):
         self.request = req.Request(self.data['url'], json.dumps(self.data, ensure_ascii=False).encode('utf-8'))
+        print(self.data)
         self.answer = json.loads(req.urlopen(self.request, timeout=7).read().decode('utf-8'))
         try:
             return self.answer['data']
@@ -66,4 +67,5 @@ class W_API:
                         raise Exception('Ошибка при создании отчёта')
         self.result = self.getReport(self.report_id)
         self.deleteReport(self.report_id)
+        print(self.result)
         return self.result
